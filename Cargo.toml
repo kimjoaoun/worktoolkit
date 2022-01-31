@@ -10,3 +10,4 @@ aws-config = "0.6.0"
 aws-sdk-dynamodb = "0.6.0"
 tokio = { version = "1", features = ["full"] }
 clap = { version = "3.0.13", features = ["derive"] }
+aws-sdk-secretsmanager = "0.6.0"
