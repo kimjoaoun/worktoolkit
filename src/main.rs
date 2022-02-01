@@ -1,43 +1,10 @@
 use clap::{App, AppSettings, arg};
-use aws_sdk_secretsmanager::{Client, Error};
+use aws_sdk_secretsmanager::{Client};
+mod lib;
 
-async fn show_secret(client: &Client, name: &str) -> Result<(), Error> {
-    
-    let resp = client.get_secret_value().secret_id(name).send().await?;
-    println!("Value: {}", resp.secret_string().unwrap_or("No value!"));
-
-    Ok(())
-}
-
-async fn show_secrets(client: &Client) -> Result<(), Error> {
-
-    let mut resp = client.list_secrets().send().await?;
-    let secrets = resp.secret_list().unwrap_or_default();
-    let mut num_secrets = secrets.len();
-
-    println!("Secret names:");
-    
-    for name in secrets {
-        println!(" {:?}", name);
-    }
-
-    while resp.next_token != None {
-        resp = client.list_secrets().set_next_token(resp.next_token).send().await?;
-
-        let secrets = resp.secret_list().unwrap_or_default();
-
-        num_secrets += secrets.len();
-
-        for name in secrets {
-            println!(" {:#?}", name);
-        }
-    }
-
-    println!("Found {} secrets", num_secrets);
-
-    Ok(())
-}
-
+use crate::lib::random_pass;
+use crate::lib::show_secret;
+use crate::lib::show_secrets;
 
 #[tokio::main]
 async fn main() {
@@ -58,8 +25,10 @@ async fn main() {
         ).subcommand(
             App::new("listsecrets")
             .about("List all AWS Secrets Manager secrets")
-        )
-        .get_matches();
+        ).subcommand(
+            App::new("strongpass").about("Generates a strong and secure password.")
+            .arg(arg!(<LEN> "Password length"))
+        ).get_matches();
         
 
     
@@ -74,6 +43,15 @@ async fn main() {
             show_secrets(&client).await.unwrap_or_default();
 
             println!("Done.");
+        }
+        Some(("strongpass", sub_matches)) => {
+            let pass_len = sub_matches
+            .value_of("LEN")
+            .expect("required")
+            .to_string()
+            .parse::<usize>().unwrap();
+
+            random_pass(pass_len);
         }
         _ => unreachable!()
     }
